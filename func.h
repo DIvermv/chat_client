@@ -6,12 +6,10 @@
 #include <ncurses.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <mqueue.h>
+#include <pthread.h>
+#include <sys/msg.h>
 #include <locale.h>
-
-#define QUEUE_NAME "/my_queue" // имя очереди
-#define PRIORITY   1
-#define SIZE       256
+#define LAST_MESSAGE 255
 struct displey {
 	char List[256][256];// список сообщений
 	char User_Name[256];// ник пользователя

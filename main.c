@@ -42,7 +42,7 @@ MEVENT event;// мышь
    // f_name_data.copy_progress=30;
     pthread_mutex_init(&mut,NULL);
    pthread_create(&Server_tid,&Server_attr,Server_mq,NULL);// создаем новый поток
-  pthread_create(&Client_tid,&Client_attr,Client_mq,NULL);// создаем новый поток
+   pthread_create(&Client_tid,&Client_attr,Client_mq,NULL);// создаем новый поток
   // pthread_create(&Status_tid,&Status_attr,Copy_Progress,&f_name_data);
   pthread_join(Client_tid,NULL);
  
