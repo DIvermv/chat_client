@@ -9,13 +9,19 @@ int Server_mq(void * f_data)
 	sleep(2);
 	char temp[256];
 	int msqid; // IPC дескриптор для очереди сообщений 
-   char pathname[] = "upd_scr.c"; // Имя файла,  использующееся для генерации ключа.
+   char pathname[] = "/initrd.img"; // Имя файла,  использующееся для генерации ключа.
     key_t key; /* IPC ключ */
-    struct mymsgbuf
+   struct mymsgbuf
     {
         long mtype;
+	struct mysbuf
+	{
+	short pid;	
         char mtext[256];
-    } mybuf;
+	} myscbuf;
+    }mybuf;
+   pid_t Pid;
+   Pid=getpid();
     if((key = ftok(pathname,0)) < 0){// генерируем ключ
        mvwprintw(win,5,5,"Can\'t generate key\n");
     wrefresh(win);
@@ -32,18 +38,18 @@ int len;
  while(1)
    {
 	c=0;   
-	while((len = msgrcv(msqid, (struct msgbuf *) &mybuf, 256, 0, 0))>0)   
+	while((len = msgrcv(msqid, (struct msgbuf *) &mybuf, 256, Pid, 0))>0)   
           { 
-           // pthread_mutex_lock(&mut);
-           werase(win); //чистим экран
+            pthread_mutex_lock(&mut);
+          // werase(win); //чистим экран
          //  box(win, 0, 0);
            mvwaddstr(win,0, 0, room);
-           mvwaddstr(win,c+1, 0, mybuf.mtext);
+           mvwaddstr(win,c+1, 0, mybuf.myscbuf.mtext);
           // mvwprintw(win,2, 0,"%i",len);
             c++;
            wrefresh(win);
+            pthread_mutex_unlock(&mut);
           }
-   // pthread_mutex_unlock(&mut);
     sleep(1);
    } 
     delwin(win);
@@ -57,14 +63,19 @@ pthread_exit(0); }
 int Client_mq(void * f_data)
  {
    int msqid; // IPC дескриптор для очереди сообщений 
-   char pathname[] = "upd_scr.c"; // Имя файла,  использующееся для генерации ключа.
+   char pathname[] = "/initrd.img"; // Имя файла,  использующееся для генерации ключа.
    key_t key; // IPC ключ
+   pid_t Pid;
    struct mymsgbuf
     {
         long mtype;
+	struct mysbuf
+	{
+	short pid;	
         char mtext[256];
-    };
-   struct mymsgbuf mybuf;
+	} myscbuf;
+    }mybuf;
+   Pid=getpid();
  if((key = ftok(pathname,0)) < 0){
         printf("Can\'t generate key\n");
     pthread_exit(-1);
@@ -85,26 +96,34 @@ int Client_mq(void * f_data)
       wrefresh(win_c);
    // pthread_mutex_unlock(&mut);
       mvwgetstr(win_c,2, 1, nik);
-   
+    // регистрируемся 
+    mybuf.mtype=1;
+    mybuf.myscbuf.pid=Pid;
+    strcpy(mybuf.myscbuf.mtext,nik);
+   int len=strlen(mybuf.myscbuf.mtext)+sizeof(Pid)+1;
+     msgsnd(msqid, (struct msgbuf *) &mybuf, len, 0);
+
+
+
       strcpy(temp,"");
       strcat(temp,"Your nickname: ");
      strcat(temp,nik);
      char nk[256];
     strcpy(nk,temp); 
     char t[256];
+   // mybuf.mtype=1;
+   // mybuf.myscbuf.pid=Pid;
    while(1)
    {
+            pthread_mutex_lock(&mut);
       werase(win_c); //чистим экран
       box(win_c, 0, 0);
       mvwaddstr(win_c,0, 1, nk);
       wrefresh(win_c);
-    mvwgetstr(win_c,1, 1, temp);
-    strcpy(mybuf.mtext,nik);
-    strcat(mybuf.mtext,": ");
-    strcat(mybuf.mtext,temp);
-    mybuf.mtype=1;
-     msgsnd(msqid, (struct msgbuf *) &mybuf, strlen(mybuf.mtext)+1, 0);
-    wrefresh(win_c);
+            pthread_mutex_unlock(&mut);
+      mvwgetstr(win_c,1, 1, temp);
+      strcpy(mybuf.myscbuf.mtext,temp);
+     msgsnd(msqid, (struct msgbuf *) &mybuf, strlen(mybuf.myscbuf.mtext)+sizeof(Pid), 0);
    }
     delwin(win_c);
     pthread_exit(0);
